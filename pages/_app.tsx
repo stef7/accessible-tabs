@@ -1,7 +1,12 @@
 import "../styles/globals.scss";
+import { AppWrapper } from "../lib/context";
 
-function MyApp({ Component, pageProps }) {
-	return <Component {...pageProps} />;
+function Application({ Component, pageProps }) {
+	return (
+		<AppWrapper>
+			<Component {...pageProps} />
+		</AppWrapper>
+	);
 }
 
-export default MyApp;
+export default Application;

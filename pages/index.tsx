@@ -1,18 +1,25 @@
 import React from "react";
 import Head from "next/head";
+import { LoremIpsum } from "lorem-ipsum";
 
 import TabSet from "../components/TabSet";
 import Container from "../components/Container";
 
-const paragraphs = (
-	<>
-		<p>Tempor vivamus repellat delectus, senectus, at! At praesent varius nemo.</p>
-		<p>Proin minus nunc! Duis natus suscipit ultricies velit beatae, quas.</p>
-		<p>Mollis id explicabo temporibus cupidatat iaculis qui adipiscing blanditiis omnis.</p>
-	</>
-);
-
 export default function Page() {
+	const lorem = new LoremIpsum({
+		sentencesPerParagraph: {
+			max: 5,
+			min: 2,
+		},
+		wordsPerSentence: {
+			max: 12,
+			min: 8,
+		},
+	});
+	const paragraphs = () =>
+		Array(3)
+			.fill(0)
+			.map((_, i) => <p key={i}>{lorem.generateParagraphs(1)}</p>);
 	return (
 		<>
 			<Head>
@@ -21,19 +28,19 @@ export default function Page() {
 			<Container>
 				<TabSet
 					{...{
-						uniqueName: "my first tabset",
+						uniqueName: "my tabset",
 						tabs: [
 							{
-								uniqueName: "tab one",
-								content: paragraphs,
+								uniqueName: lorem.generateWords(3),
+								content: paragraphs(),
 							},
 							{
-								uniqueName: "tab two",
-								content: paragraphs,
+								uniqueName: lorem.generateWords(2),
+								content: paragraphs(),
 							},
 							{
-								uniqueName: "tab one",
-								content: paragraphs,
+								uniqueName: lorem.generateWords(3),
+								content: paragraphs(),
 							},
 						],
 					}}
@@ -41,21 +48,24 @@ export default function Page() {
 
 				<TabSet
 					{...{
-						uniqueName: "my second tabset",
-						tabs: [
-							{
-								uniqueName: "tab one",
-								content: paragraphs,
-							},
-							{
-								uniqueName: "tab two",
-								content: paragraphs,
-							},
-							{
-								uniqueName: "tab one",
-								content: paragraphs,
-							},
-						],
+						uniqueName: "another tabset",
+						tabs: Array(3)
+							.fill(0)
+							.map((_, i) => ({
+								uniqueName: i < 2 ? "same tab name oops" : lorem.generateWords(2),
+								content: <p>{lorem.generateSentences(3)}</p>,
+							})),
+					}}
+				/>
+				<TabSet
+					{...{
+						uniqueName: "another tabset",
+						tabs: Array(4)
+							.fill(0)
+							.map(() => ({
+								uniqueName: lorem.generateWords(3),
+								content: <p>{lorem.generateSentences(2)}</p>,
+							})),
 					}}
 				/>
 			</Container>

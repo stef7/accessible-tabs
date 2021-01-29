@@ -1,16 +1,34 @@
+$radius: 0.25rem;
+$border: 0.1rem;
+
 .tabset {
-	&__tabs {
-		display: flex;
-		list-style: none;
-		flex-wrap: wrap;
-		align-items: bottom;
+	margin: 2rem 0;
+	position: relative;
+	&[aria-label]:before {
+		content: attr(aria-label);
+		bottom: 100%;
+		font-size: 0.5em;
+		color: red;
 	}
-	&__tab {
-		padding: 0.25em 0.5em;
-		margin: 0.25em 0.25em 0 0;
-		border: 0.1em solid;
-		border-radius: 0.1em 0.1em 0 0;
-	}
-	&__content {
-	}
+}
+.tabs {
+	display: flex;
+	list-style: none;
+	flex-wrap: wrap;
+	align-items: bottom;
+	margin: 0 0 (0 - $border) 0;
+	padding: 0;
+}
+.tab {
+	font-size: 1em;
+	padding: 0.5em;
+	margin: $radius $radius 0 0;
+	border: $border solid;
+	border-radius: $radius $radius 0 0;
+	cursor: pointer;
+}
+.panel {
+	border: $border solid;
+	padding: 1em;
+	border-radius: 0 $radius $radius $radius;
 }
