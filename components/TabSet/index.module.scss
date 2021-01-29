@@ -1,0 +1,16 @@
+.tabset {
+	&__tabs {
+		display: flex;
+		list-style: none;
+		flex-wrap: wrap;
+		align-items: bottom;
+	}
+	&__tab {
+		padding: 0.25em 0.5em;
+		margin: 0.25em 0.25em 0 0;
+		border: 0.1em solid;
+		border-radius: 0.1em 0.1em 0 0;
+	}
+	&__content {
+	}
+}
