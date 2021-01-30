@@ -1,10 +1,10 @@
 import { NextRouter, useRouter } from "next/router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 
-import { useAppContext } from "../../lib/context";
 import styles from "./index.module.scss";
 
 interface TabSetProps {
+	appContext: ReturnType<typeof createContext>;
 	uniqueName: string;
 	tabs: {
 		uniqueName: string;
@@ -13,28 +13,65 @@ interface TabSetProps {
 	}[];
 }
 
-const uniqueCache = {};
-const uniqueFor = (key: string) => {
-	let times = uniqueCache[key];
-	if (times === undefined) times = uniqueCache[key] = 0;
-	else times = uniqueCache[key] += 1;
-	return times ? `${key}-${times}` : key;
-};
-const uniqueSlug = (uniqueName: string, slugSetName: string): string => {
-	const slug1 = uniqueName
+const createSlug = (name) =>
+	name
 		.replace(/[^a-zA-Z1-3]+/gi, " ")
 		.trim()
 		.replace(/ /g, "-")
 		.toLowerCase();
 
-	const slug2 = uniqueFor(slug1);
-	if (slug2 !== slug1) {
+const incrementTabsetKey = (
+	key: string,
+	lookupObj?: TabsetLookup,
+	appContext?: TabSetProps["appStateObj"],
+) => {
+	if (lookupObj) {
+		const val = lookupObj[key];
+
+		lookupObj[key] = val === undefined ? 0 : val + 1;
+
+		return lookupObj[key];
+	} else if (appStateArray) {
+		const [appState, setAppState] = appStateArray;
+		if (typeof appState.tabsets !== "object") {
+			setAppState({ ...appState, tabsets: {} });
+		}
+
+		const val = appState.tabsets[key];
+
+		setAppState({
+			...appState,
+			tabsets: {
+				...appState.tabsets,
+				[key]: val === undefined ? 0 : val + 1,
+			},
+		});
+
+		return appState.tabsets[key];
+	} else {
+		throw new Error("no key lookup provided");
+	}
+};
+
+const getUniqueSlug = (
+	uniqueName: string,
+	slugSetName: string,
+	slugsObj?: Record<string, number>,
+	appContext?: TabSetProps["appContext"],
+): string => {
+	const slug = createSlug(uniqueName);
+
+	const times = incrementTabsetKey(slug, slugsObj, appContext);
+
+	const slugUnique = times ? `${slug}-${times}` : slug;
+
+	if (slugUnique !== slug) {
 		console.error(
-			`${slugSetName} slug "${slug1}" (sanitised uniqueName) is not unique. Adding incremental suffix, it's now "${slug2}", but please note this is not reliable. Please be more original ;)`,
+			`${slugSetName} slug "${slug}" (sanitised uniqueName) is not unique. Adding incremental suffix, it's now "${slugUnique}", but please note this is not reliable. Please be more original ;)`,
 		);
 	}
 
-	return slug2;
+	return slugUnique;
 };
 
 let scrollPos: { left: number; top: number };
@@ -49,8 +86,8 @@ const restoreScroll = () => {
 
 const selectTab = (router: NextRouter, tabSetSlug: string, tabSlug: string): void => {
 	const url = new URL(window.location.href);
-	url.searchParams.set(`tabs--${tabSetSlug}`, tabSlug);
-	url.hash = `tab--${tabSetSlug}--${tabSlug}`;
+	url.searchParams.set(`${tabSetSlug}`, tabSlug);
+	url.hash = `${tabSetSlug}--${tabSlug}`;
 
 	router.push(url, undefined, { shallow: true });
 };
@@ -60,13 +97,22 @@ const querySlugString = (querySlug: string | string[]) => {
 	return querySlug;
 };
 
-export default function TabSet({ uniqueName, tabs: tabsStart }: TabSetProps): JSX.Element {
-	const tabSetSlug = uniqueSlug(uniqueName, "Tabset");
+export default function TabSet({
+	appContext,
+	uniqueName,
+	tabs: tabsStart,
+}: TabSetProps): JSX.Element {
+	if (!appContext) throw new Error("no appContext provided");
+
+	const tabSetSlug = getUniqueSlug(uniqueName, "Tabset", undefined, appContext);
 	const tabSetId = `tabset--${tabSetSlug}`;
 
+	const tabsSlugs = {};
 	const tabs = tabsStart.map((tab) => {
 		const { uniqueName: tabName } = tab;
-		const tabSlug = uniqueSlug(tabName, `Tabset "${tabSetSlug}" tab`);
+
+		const tabSlug = getUniqueSlug(tabName, `Tabset "${tabSetSlug}" tab`, tabsSlugs);
+
 		return {
 			...tab,
 			slug: tabSlug,
@@ -90,10 +136,12 @@ export default function TabSet({ uniqueName, tabs: tabsStart }: TabSetProps): JS
 			if (shallow) restoreScroll();
 		});
 
+		/* not required? hash focuses automatically?
 		const hash = window.location.hash;
 		if (hash) {
 			panelRefs[tabs.findIndex((tab) => tab.panelId == hash)]?.current?.focus();
 		}
+		*/
 	}, []);
 
 	useEffect(() => {

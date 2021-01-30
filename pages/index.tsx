@@ -4,71 +4,76 @@ import { LoremIpsum } from "lorem-ipsum";
 
 import TabSet from "../components/TabSet";
 import Container from "../components/Container";
+import { GetStaticProps } from "next";
 
-export default function Page() {
-	const lorem = new LoremIpsum({
-		sentencesPerParagraph: {
-			max: 5,
-			min: 2,
-		},
-		wordsPerSentence: {
-			max: 12,
-			min: 8,
-		},
-	});
-	const paragraphs = () =>
-		Array(3)
-			.fill(0)
-			.map((_, i) => <p key={i}>{lorem.generateParagraphs(1)}</p>);
+export default function Page({ tabsets, appState }) {
 	return (
 		<>
 			<Head>
 				<title>Accessible Tabs</title>
 			</Head>
 			<Container>
-				<TabSet
-					{...{
-						uniqueName: "my tabset",
-						tabs: [
-							{
-								uniqueName: lorem.generateWords(3),
-								content: paragraphs(),
-							},
-							{
-								uniqueName: lorem.generateWords(2),
-								content: paragraphs(),
-							},
-							{
-								uniqueName: lorem.generateWords(3),
-								content: paragraphs(),
-							},
-						],
-					}}
-				/>
-
-				<TabSet
-					{...{
-						uniqueName: "another tabset",
-						tabs: Array(3)
-							.fill(0)
-							.map((_, i) => ({
-								uniqueName: i < 2 ? "same tab name oops" : lorem.generateWords(2),
-								content: <p>{lorem.generateSentences(3)}</p>,
-							})),
-					}}
-				/>
-				<TabSet
-					{...{
-						uniqueName: "another tabset",
-						tabs: Array(4)
-							.fill(0)
-							.map(() => ({
-								uniqueName: lorem.generateWords(3),
-								content: <p>{lorem.generateSentences(2)}</p>,
-							})),
-					}}
-				/>
+				{tabsets.map((tabset, i) => (
+					<TabSet
+						{...{
+							...tabset,
+							key: i,
+							appState,
+						}}
+					/>
+				))}
 			</Container>
 		</>
 	);
 }
+
+export const getStaticProps: GetStaticProps = async () => {
+	const lorem = new LoremIpsum();
+
+	const paragraphs = () =>
+		Array(3)
+			.fill(0)
+			.map((_, i) => lorem.generateParagraphs(i));
+
+	return {
+		props: {
+			tabsets: [
+				{
+					uniqueName: "my tabset",
+					tabs: [
+						{
+							uniqueName: lorem.generateWords(3),
+							content: paragraphs(),
+						},
+						{
+							uniqueName: lorem.generateWords(2),
+							content: paragraphs(),
+						},
+						{
+							uniqueName: lorem.generateWords(3),
+							content: paragraphs(),
+						},
+					],
+				},
+				{
+					uniqueName: "another tabset",
+					tabs: Array(3)
+						.fill(0)
+						.map((_, i) => ({
+							uniqueName: i < 2 ? "same tab name oops " : " another tab ... ",
+							content: lorem.generateSentences(3),
+						})),
+				},
+				{
+					uniqueName: "another tabset",
+					tabs: Array(4)
+						.fill(0)
+						.map((_, i) => ({
+							uniqueName: `(tabset has name oops!) tab ${i}`,
+							content: lorem.generateSentences(2),
+						})),
+				},
+			],
+		},
+	};
+};
