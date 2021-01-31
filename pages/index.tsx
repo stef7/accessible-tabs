@@ -5,8 +5,9 @@ import { LoremIpsum } from "lorem-ipsum";
 import TabSet from "../components/TabSet";
 import Container from "../components/Container";
 import { GetStaticProps } from "next";
+import { AppContext } from "./_app";
 
-export default function Page({ tabsets, appState }) {
+export default function Page({ tabsets }) {
 	return (
 		<>
 			<Head>
@@ -16,9 +17,10 @@ export default function Page({ tabsets, appState }) {
 				{tabsets.map((tabset, i) => (
 					<TabSet
 						{...{
-							...tabset,
 							key: i,
-							appState,
+							uniqueName: tabset.uniqueName,
+							tabs: tabset.tabs,
+							contextWithTabSets: AppContext,
 						}}
 					/>
 				))}
@@ -29,7 +31,6 @@ export default function Page({ tabsets, appState }) {
 
 export const getStaticProps: GetStaticProps = async () => {
 	const lorem = new LoremIpsum();
-
 	const paragraphs = () =>
 		Array(3)
 			.fill(0)

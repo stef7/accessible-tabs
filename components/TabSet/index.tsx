@@ -1,10 +1,46 @@
 import { NextRouter, useRouter } from "next/router";
-import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import React, {
+	Context,
+	createContext,
+	Dispatch,
+	Reducer,
+	ReducerAction,
+	ReducerState,
+	useContext,
+	useEffect,
+	useReducer,
+	useRef,
+	useState,
+} from "react";
 
 import styles from "./index.module.scss";
 
+type TabSetLookup = {
+	[index: string]: number;
+};
+type TabSetsState = TabSetLookup;
+
+type TabSetsReducer = <R extends Reducer<any, any>>(
+	reducer: R,
+	initialState: ReducerState<R>,
+) => [ReducerState<R>, Dispatch<ReducerAction<R>>];
+
+export const getTabSetsContextValue: () => ReturnType<TabSetsReducer> = () =>
+	useReducer(
+		(state: TabSetsState, tabSetKey: string) => ({
+			...state,
+			[tabSetKey]: state[tabSetKey] === undefined ? 0 : state[tabSetKey] + 1,
+		}),
+		{} as TabSetsState,
+	);
+
+type ContextWithTabSets = Context<{
+	[index: string]: any;
+	tabSets: ReturnType<typeof getTabSetsContextValue>;
+}>;
+
 interface TabSetProps {
-	appContext: ReturnType<typeof createContext>;
+	contextWithTabSets: ContextWithTabSets;
 	uniqueName: string;
 	tabs: {
 		uniqueName: string;
@@ -20,34 +56,21 @@ const createSlug = (name) =>
 		.replace(/ /g, "-")
 		.toLowerCase();
 
-const incrementTabsetKey = (
+const incrementTabSetKey = (
 	key: string,
-	lookupObj?: TabsetLookup,
-	appContext?: TabSetProps["appStateObj"],
+	lookupObj?: TabSetLookup,
+	contextWithTabSets?: TabSetProps["contextWithTabSets"],
 ) => {
 	if (lookupObj) {
 		const val = lookupObj[key];
-
 		lookupObj[key] = val === undefined ? 0 : val + 1;
-
 		return lookupObj[key];
-	} else if (appStateArray) {
-		const [appState, setAppState] = appStateArray;
-		if (typeof appState.tabsets !== "object") {
-			setAppState({ ...appState, tabsets: {} });
-		}
-
-		const val = appState.tabsets[key];
-
-		setAppState({
-			...appState,
-			tabsets: {
-				...appState.tabsets,
-				[key]: val === undefined ? 0 : val + 1,
-			},
-		});
-
-		return appState.tabsets[key];
+	} else if (contextWithTabSets) {
+		const {
+			tabSets: [state, dispatch],
+		} = useContext(contextWithTabSets);
+		dispatch(key);
+		return state[key];
 	} else {
 		throw new Error("no key lookup provided");
 	}
@@ -57,13 +80,13 @@ const getUniqueSlug = (
 	uniqueName: string,
 	slugSetName: string,
 	slugsObj?: Record<string, number>,
-	appContext?: TabSetProps["appContext"],
+	context?: TabSetProps["contextWithTabSets"],
 ): string => {
 	const slug = createSlug(uniqueName);
 
-	const times = incrementTabsetKey(slug, slugsObj, appContext);
+	const times = incrementTabSetKey(slug, slugsObj, context);
 
-	const slugUnique = times ? `${slug}-${times}` : slug;
+	const slugUnique = times ? `${slug}-${times + 1}` : slug;
 
 	if (slugUnique !== slug) {
 		console.error(
@@ -98,20 +121,20 @@ const querySlugString = (querySlug: string | string[]) => {
 };
 
 export default function TabSet({
-	appContext,
+	contextWithTabSets,
 	uniqueName,
 	tabs: tabsStart,
 }: TabSetProps): JSX.Element {
-	if (!appContext) throw new Error("no appContext provided");
+	if (!contextWithTabSets) throw new Error("no contextWithTabSets provided");
 
-	const tabSetSlug = getUniqueSlug(uniqueName, "Tabset", undefined, appContext);
-	const tabSetId = `tabset--${tabSetSlug}`;
+	const tabSetSlug = getUniqueSlug(uniqueName, "TabSet", undefined, contextWithTabSets);
+	const tabSetId = `tabSet--${tabSetSlug}`;
 
 	const tabsSlugs = {};
 	const tabs = tabsStart.map((tab) => {
 		const { uniqueName: tabName } = tab;
 
-		const tabSlug = getUniqueSlug(tabName, `Tabset "${tabSetSlug}" tab`, tabsSlugs);
+		const tabSlug = getUniqueSlug(tabName, `TabSet "${tabSetSlug}" tab`, tabsSlugs);
 
 		return {
 			...tab,
@@ -150,7 +173,7 @@ export default function TabSet({
 	}, [router.query[tabSetSlug]]);
 
 	return (
-		<div id={tabSetId} className={styles.tabset}>
+		<div id={tabSetId} className={styles.tabSet}>
 			<ul role="tablist" aria-label={uniqueName} className={styles.tabs}>
 				{tabs.map((tab, i) => (
 					<li key={i}>

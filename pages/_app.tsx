@@ -1,19 +1,13 @@
-import React, { createContext, useReducer } from "react";
+import React, { createContext } from "react";
 import "../styles/globals.scss";
+import { getTabSetsContextValue } from "../components/TabSet";
 
 export const AppContext = createContext(null);
 
-function Application({ Component, pageProps }) {
-	const tabSets = useReducer((state, tabsetKey) => ({
-		...state,
-		[tabsetKey]: state[tabsetKey] === undefined ? 0 : state[tabsetKey] + 1,
-	}), {});
-
+export default function Application({ Component, pageProps }): JSX.Element {
 	return (
-		<AppContext.Provider value={{ tabSets }}>
+		<AppContext.Provider value={{ tabSets: getTabSetsContextValue() }}>
 			<Component {...pageProps} />
 		</AppContext.Provider>
 	);
 }
-
-export default Application;
