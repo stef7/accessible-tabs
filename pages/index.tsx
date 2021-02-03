@@ -1,13 +1,21 @@
 import React from "react";
+import { GetStaticProps, InferGetStaticPropsType } from "next";
 import Head from "next/head";
 import { LoremIpsum } from "lorem-ipsum";
 
 import TabSet from "../components/TabSet";
 import Container from "../components/Container";
-import { GetStaticProps } from "next";
-import { AppContext } from "./_app";
 
-export default function Page({ tabsets }) {
+type PageTabSetProps = {
+	uniqueName: string;
+	tabs: {
+		uniqueName: string;
+		content: string[];
+		isActive?: boolean;
+	}[];
+};
+
+export default function Page({ tabsets }: InferGetStaticPropsType<typeof getStaticProps>) {
 	return (
 		<>
 			<Head>
@@ -16,11 +24,16 @@ export default function Page({ tabsets }) {
 			<Container>
 				{tabsets.map((tabset, i) => (
 					<TabSet
-						{...{
-							key: i,
-							uniqueName: tabset.uniqueName,
-							tabs: tabset.tabs,
-							contextWithTabSets: AppContext,
+						key={i}
+						uniqueName={tabset.uniqueName}
+						tabs={tabset.tabs.map((tab) => ({
+							...tab,
+							content: tab.content.map((para, pi) => <p key={pi}>{para}</p>),
+						}))}
+						options={{
+							useHash: false,
+							useQuery: false,
+							hardErrors: false,
 						}}
 					/>
 				))}
@@ -29,29 +42,29 @@ export default function Page({ tabsets }) {
 	);
 }
 
-export const getStaticProps: GetStaticProps = async () => {
+export const getStaticProps: GetStaticProps<{ tabsets: PageTabSetProps[] }> = async () => {
 	const lorem = new LoremIpsum();
 	const paragraphs = () =>
 		Array(3)
 			.fill(0)
-			.map((_, i) => lorem.generateParagraphs(i));
+			.map((_, i) => lorem.generateSentences(i));
 
 	return {
 		props: {
 			tabsets: [
 				{
-					uniqueName: "my tabset",
+					uniqueName: "first tabset",
 					tabs: [
 						{
-							uniqueName: lorem.generateWords(3),
+							uniqueName: "aaa",
 							content: paragraphs(),
 						},
 						{
-							uniqueName: lorem.generateWords(2),
+							uniqueName: "b b b",
 							content: paragraphs(),
 						},
 						{
-							uniqueName: lorem.generateWords(3),
+							uniqueName: "c cc",
 							content: paragraphs(),
 						},
 					],
@@ -62,18 +75,20 @@ export const getStaticProps: GetStaticProps = async () => {
 						.fill(0)
 						.map((_, i) => ({
 							uniqueName: i < 2 ? "same tab name oops " : " another tab ... ",
-							content: lorem.generateSentences(3),
+							content: paragraphs(),
 						})),
 				},
-				{
-					uniqueName: "another tabset",
-					tabs: Array(4)
-						.fill(0)
-						.map((_, i) => ({
-							uniqueName: `(tabset has name oops!) tab ${i}`,
-							content: lorem.generateSentences(2),
-						})),
-				},
+				...Array(1)
+					.fill(0)
+					.map(() => ({
+						uniqueName: "duplicate tabset name",
+						tabs: Array(2)
+							.fill(0)
+							.map((_, i) => ({
+								uniqueName: `tab ${i + 1}`,
+								content: paragraphs(),
+							})),
+					})),
 			],
 		},
 	};

@@ -1,34 +1,51 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Accessible Tabs
 
-## Getting Started
+This application uses Next.js/React to run my accessible tabs component.
 
-First, run the development server:
+To begin, run either `npm install` or `yarn` to install all the package dependencies.
 
-```bash
-npm run dev
-# or
-yarn dev
+## Using the TabSet component
+
+The `TabSet` component was built with full Typescript support. It accepts the following properties:
+
+|Prop|Purpose|
+|-|-|
+|uniqueName|A name for this particular instance of the tab set. This should be unique, as it is turned into a "slug" which will become the unique identifier used in URLs.
+|tabs|An array of tab objects with the following properties:
+* uniqueName: A name for this particular tab. Must also be unique -- similar rules and usage as tab sets.
+* content: A React.ReactNode or JSX.Element object.
+
+|options|A configuration object determining the behaviour of the component:
+
+* uniqueName: A name for this particular tab. Must also be unique -- similar rules and usage as tab sets.
+* content: A React.ReactNode or JSX.Element object.|
+
+
+Example:
+```tsx
+<TabSet
+	uniqueName="My tabs"
+	tabs={[
+		{
+			uniqueName: "One",
+			content: <p>Goodbye</p>,
+			isActive: false,
+		},
+		{
+			uniqueName: "Two",
+			content: <p>Hello</p>,
+			isActive: true,
+		}
+	]}
+/>
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Running component tests
 
-You can start editing the page by modifying `pages/index.js`. The page auto-updates as you edit the file.
+TBC
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.js`.
+## Notes on real-world accessibility
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+According to this article from https://simplyaccessible.com/article/danger-aria-tabs/, the ARIA accessibility attributes may not be as useful as we might assume. However, that post was written 5 years ago, so it may no longer be relevant. Any assumptions should be tested with real users.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/import?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+For the sake of this exercise, I will proceed on the assumption that the attributes are indeed useful now in 2021.

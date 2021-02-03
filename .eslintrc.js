@@ -8,7 +8,7 @@ module.exports = {
 			jsx: true,
 		},
 	},
-	plugins: ["simple-import-sort"],
+	plugins: ["simple-import-sort", "react-hooks"],
 	settings: {
 		react: {
 			version: "detect",
@@ -44,6 +44,7 @@ module.exports = {
 				aspects: ["invalidHref", "preferButton"],
 			},
 		],
-		"no-console": ["error", { allow: ["error"] }],
+		"react-hooks/rules-of-hooks": "error", // Checks rules of Hooks
+		"react-hooks/exhaustive-deps": "warn", // Checks effect dependencies
 	},
 };

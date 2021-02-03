@@ -10,11 +10,12 @@
 		"format": "prettier --write . --config ./.prettierrc.js"
 	},
 	"dependencies": {
+		"@types/lodash": "^4.14.168",
+		"lodash": "^4.17.20",
 		"lorem-ipsum": "^2.0.3",
 		"next": "10.0.5",
 		"react": "17.0.1",
-		"react-dom": "17.0.1",
-		"use-global-hook": "^0.2.1"
+		"react-dom": "17.0.1"
 	},
 	"devDependencies": {
 		"@babel/core": "^7.12.10",

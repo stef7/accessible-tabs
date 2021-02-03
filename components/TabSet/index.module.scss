@@ -3,7 +3,6 @@ $border: 0.1rem;
 
 .tabset {
 	margin: 2rem 0;
-	position: relative;
 	&[aria-label]:before {
 		content: attr(aria-label);
 		bottom: 100%;
@@ -15,20 +14,32 @@ $border: 0.1rem;
 	display: flex;
 	list-style: none;
 	flex-wrap: wrap;
-	align-items: bottom;
-	margin: 0 0 (0 - $border) 0;
+	> li {
+		display: flex;
+	}
+	margin: 0;
 	padding: 0;
 }
 .tab {
 	font-size: 1em;
 	padding: 0.5em;
-	margin: $radius $radius 0 0;
-	border: $border solid;
+	margin: 0 $radius 0 0;
+	border: $border solid black;
+	background: black;
+	color: white;
 	border-radius: $radius $radius 0 0;
 	cursor: pointer;
 }
+.itemActive {
+	.tab {
+		background: white;
+		color: black;
+		border-bottom: none;
+	}
+}
 .panel {
-	border: $border solid;
+	border: $border solid black;
 	padding: 1em;
 	border-radius: 0 $radius $radius $radius;
+	margin: (0 - $border) 0 0 0;
 }

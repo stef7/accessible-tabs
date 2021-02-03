@@ -1,118 +1,60 @@
-import { NextRouter, useRouter } from "next/router";
-import React, {
-	Context,
-	createContext,
-	Dispatch,
-	Reducer,
-	ReducerAction,
-	ReducerState,
-	useContext,
-	useEffect,
-	useReducer,
-	useRef,
-	useState,
-} from "react";
+import cloneDeep from "lodash/cloneDeep";
+import defaults from "lodash/defaults";
+import merge from "lodash/merge";
+import { useRouter } from "next/router";
+import React, { Dispatch, MutableRefObject, useEffect, useReducer, useRef, useState } from "react";
 
 import styles from "./index.module.scss";
 
-type TabSetLookup = {
-	[index: string]: number;
-};
-type TabSetsState = TabSetLookup;
-
-type TabSetsReducer = <R extends Reducer<any, any>>(
-	reducer: R,
-	initialState: ReducerState<R>,
-) => [ReducerState<R>, Dispatch<ReducerAction<R>>];
-
-export const getTabSetsContextValue: () => ReturnType<TabSetsReducer> = () =>
-	useReducer(
-		(state: TabSetsState, tabSetKey: string) => ({
-			...state,
-			[tabSetKey]: state[tabSetKey] === undefined ? 0 : state[tabSetKey] + 1,
-		}),
-		{} as TabSetsState,
-	);
-
-type ContextWithTabSets = Context<{
-	[index: string]: any;
-	tabSets: ReturnType<typeof getTabSetsContextValue>;
-}>;
-
-interface TabSetProps {
-	contextWithTabSets: ContextWithTabSets;
+type TabSetProps = {
 	uniqueName: string;
 	tabs: {
 		uniqueName: string;
 		content: React.ReactNode;
 		isActive?: boolean;
 	}[];
-}
+	options?: {
+		useQuery?: boolean;
+		useHash?: boolean;
+		hardErrors?: boolean;
+	};
+};
 
-const createSlug = (name) =>
+const reportError = (msg: string) => {
+	if (typeof window !== "undefined") console.error(msg);
+	else console.error(new Error(msg));
+};
+
+const createSlug = (name: string): string =>
 	name
 		.replace(/[^a-zA-Z1-3]+/gi, " ")
 		.trim()
 		.replace(/ /g, "-")
 		.toLowerCase();
 
-const incrementTabSetKey = (
-	key: string,
-	lookupObj?: TabSetLookup,
-	contextWithTabSets?: TabSetProps["contextWithTabSets"],
-) => {
-	if (lookupObj) {
-		const val = lookupObj[key];
-		lookupObj[key] = val === undefined ? 0 : val + 1;
-		return lookupObj[key];
-	} else if (contextWithTabSets) {
-		const {
-			tabSets: [state, dispatch],
-		} = useContext(contextWithTabSets);
-		dispatch(key);
-		return state[key];
-	} else {
-		throw new Error("no key lookup provided");
-	}
-};
-
 const getUniqueSlug = (
 	uniqueName: string,
 	slugSetName: string,
-	slugsObj?: Record<string, number>,
-	context?: TabSetProps["contextWithTabSets"],
+	slugSet: Record<string, number>,
+	hardErrors: TabSetProps["options"]["hardErrors"] = true,
 ): string => {
 	const slug = createSlug(uniqueName);
 
-	const times = incrementTabSetKey(slug, slugsObj, context);
+	if (!slugSet) return slug;
 
-	const slugUnique = times ? `${slug}-${times + 1}` : slug;
+	let increment = slugSet[slug];
+	increment = slugSet[slug] = increment === undefined ? 0 : increment + 1;
 
+	const slugUnique = increment ? `${slug}-${increment + 1}` : slug;
+
+	// report duplicate tab slug issue [on client-side]
 	if (slugUnique !== slug) {
-		console.error(
-			`${slugSetName} slug "${slug}" (sanitised uniqueName) is not unique. Adding incremental suffix, it's now "${slugUnique}", but please note this is not reliable. Please be more original ;)`,
-		);
+		const errorText = `${slugSetName} slug "${slug}" (based on uniqueName) is not unique. Adding incremental suffix makes it "${slugUnique}", but as this is sequence-based, this will cause usability/accessibility issues if left unresolved.`;
+		reportError(errorText);
+		if (hardErrors) throw new Error(errorText);
+		// hopefully catches duplicate id issues on dev/server-side too ^
 	}
-
 	return slugUnique;
-};
-
-let scrollPos: { left: number; top: number };
-const saveScroll = () => {
-	scrollPos = { left: window.scrollX, top: window.scrollY };
-};
-const restoreScroll = () => {
-	if (scrollPos) {
-		window.scrollTo(scrollPos);
-	}
-};
-
-const selectTab = (router: NextRouter, tabSetSlug: string, tabSlug: string): void => {
-	const url = new URL(window.location.href);
-	url.searchParams.set(`${tabSetSlug}`, tabSlug);
-	url.hash = `${tabSetSlug}--${tabSlug}`;
-
-	router.push(url, undefined, { shallow: true });
 };
 
 const querySlugString = (querySlug: string | string[]) => {
@@ -120,92 +62,194 @@ const querySlugString = (querySlug: string | string[]) => {
 	return querySlug;
 };
 
-export default function TabSet({
-	contextWithTabSets,
-	uniqueName,
-	tabs: tabsStart,
-}: TabSetProps): JSX.Element {
-	if (!contextWithTabSets) throw new Error("no contextWithTabSets provided");
+let scrollPosition: { top: number; left: number };
+const saveScroll = () => {
+	if (typeof window !== "object") return;
+	scrollPosition = { top: window.scrollY, left: window.scrollX };
+};
+const restoreScroll = () => {
+	if (typeof window !== "object") return;
+	window.scrollTo(scrollPosition);
+};
 
-	const tabSetSlug = getUniqueSlug(uniqueName, "TabSet", undefined, contextWithTabSets);
-	const tabSetId = `tabSet--${tabSetSlug}`;
+const windowState: Record<string, unknown> =
+	typeof window === "object" && window.history?.state === "object" ? window.history.state : {};
+const keepState = () => merge(windowState, window.history.state);
 
-	const tabsSlugs = {};
-	const tabs = tabsStart.map((tab) => {
-		const { uniqueName: tabName } = tab;
-
-		const tabSlug = getUniqueSlug(tabName, `TabSet "${tabSetSlug}" tab`, tabsSlugs);
-
-		return {
-			...tab,
-			slug: tabSlug,
-			panelId: `${tabSetSlug}--${tabSlug}`,
-			tabId: `tab--${tabSetSlug}--${tabSlug}`,
-		};
+const TabSet: React.FC<TabSetProps> = function ({ uniqueName, tabs: tabsInit, options }) {
+	defaults(options, {
+		useQuery: true,
+		useHash: false,
+		hardErrors: !/prod/.test(process.env.NODE_ENV),
 	});
+
+	const tabSetSlug = getUniqueSlug(uniqueName, "TabSet", undefined, options.hardErrors);
+	const tabSetId = `tabs--${tabSetSlug}`;
+	const tabSetDiv = useRef<HTMLDivElement>(null);
 
 	const router = useRouter();
 
-	const startTab = tabs.find((tab) => tab.isActive) || tabs[0];
-	let querySlug = querySlugString(router.query[tabSetSlug]);
-	const queryTab = querySlug && tabs.find((tab) => tab.slug === querySlug);
+	const tabSlugs = {};
+	const tabs = tabsInit.map((tab) => {
+		const tabSlug = getUniqueSlug(
+			tab.uniqueName,
+			`TabSet "${tabSetSlug}" tab`,
+			tabSlugs,
+			options.hardErrors,
+		);
+		return {
+			initData: tab,
+			slug: tabSlug,
+			tabId: `tab--${tabSetSlug}--${tabSlug}`,
+			panelId: `${tabSetSlug}--${tabSlug}`,
+		};
+	});
 
-	const [activeSlug, setActiveSlug] = useState(queryTab?.slug || startTab?.slug);
+	const [activeIdx, setActiveIdx] = useState(() => {
+		const querySlug = querySlugString(router.query[tabSetSlug]);
+		if (querySlug) return tabs.findIndex((tab) => tab.slug === querySlug);
 
-	const panelRefs = tabs.map(() => useRef<HTMLDivElement>());
+		const firstActive = tabs.find((tab) => tab.initData.isActive);
+		if (firstActive) return tabs.indexOf(firstActive);
 
+		return 0;
+	});
+
+	const [focused, setFocused] = useState({ panelIndex: undefined, tabIndex: undefined });
 	useEffect(() => {
-		router.events.on("hashChangeComplete", (url, { shallow }) => {
-			if (shallow) restoreScroll();
-		});
-
-		/* not required? hash focuses automatically?
-		const hash = window.location.hash;
-		if (hash) {
-			panelRefs[tabs.findIndex((tab) => tab.panelId == hash)]?.current?.focus();
+		let element: HTMLDivElement | HTMLButtonElement;
+		if (focused.panelIndex !== undefined) {
+			element = tabSetDiv.current?.getElementsByClassName(styles.panel)[
+				focused.panelIndex
+			] as HTMLDivElement;
+		} else if (focused.tabIndex !== undefined) {
+			element = tabSetDiv.current?.getElementsByClassName(styles.tab)[
+				focused.tabIndex
+			] as HTMLButtonElement;
 		}
-		*/
+		element?.focus();
+	}, [focused]);
+
+	const selectTab = async (newIdx: number, focusTab?: boolean) => {
+		console.log("selectTab", newIdx);
+		saveScroll();
+
+		const activeSlug = tabs[newIdx].slug;
+
+		let url: URL;
+		if (options.useHash || options.useQuery) {
+			url = new URL(window.location.href);
+
+			if (options.useQuery) url.searchParams.set(tabSetSlug, activeSlug);
+			if (options.useHash) url.hash = `${tabSetSlug}--${activeSlug}`;
+
+			await router.push(url, undefined, { shallow: true, scroll: false });
+		} else {
+			setActiveIdx(newIdx);
+		}
+		if (options.useHash) {
+			setActiveIdx(newIdx); // why is this needed even with router.push?
+			restoreScroll(); // doesn't work?
+		}
+
+		const historyMethod = options.useHash || options.useQuery ? "replaceState" : "pushState";
+		const newState = {
+			...window.history.state,
+			tabsets: merge(window.history.state.tabsets || {}, {
+				[tabSetSlug]: activeSlug,
+			}),
+		};
+		window.history[historyMethod](newState, document.title, window.location.href);
+
+		if (focusTab) setFocused({ panelIndex: undefined, tabIndex: newIdx });
+		else setFocused({ panelIndex: newIdx, tabIndex: undefined });
+	};
+
+	const setActiveSlugFromQuery = () => {
+		if (options.useQuery) {
+			const querySlug = querySlugString(router.query[tabSetSlug]);
+			if (!querySlug) return;
+			const index = tabs.findIndex((tab) => tab.slug === querySlug);
+			if (index !== undefined) setActiveIdx(index);
+		}
+	};
+	useEffect(setActiveSlugFromQuery, [router.query[tabSetSlug]]);
+
+	const setActiveSlugFromState = () => {
+		const stateSlug = windowState.tabsets?.[tabSetSlug];
+		if (!stateSlug) return;
+		const index = tabs.findIndex((tab) => tab.slug === stateSlug);
+		if (index !== undefined) setActiveIdx(index);
+	};
+	const onPopState = (event: PopStateEvent) => {
+		keepState();
+		setActiveSlugFromState();
+		restoreScroll();
+	};
+	const onPopStateInspect = (event: PopStateEvent) => {
+		console.warn(cloneDeep(window.history.state), event);
+	};
+	if (typeof window !== "undefined") keepState();
+	useEffect(() => {
+		if (!options.useQuery && !options.useHash) {
+			keepState();
+			window.addEventListener("popstate", onPopState);
+			window.addEventListener("popstate", onPopStateInspect);
+			return () => {
+				window.removeEventListener("popstate", onPopState);
+				window.removeEventListener("popstate", onPopStateInspect);
+			};
+		}
 	}, []);
 
-	useEffect(() => {
-		querySlug = querySlugString(router.query[tabSetSlug]);
-		if (querySlug) setActiveSlug(querySlug);
-	}, [router.query[tabSetSlug]]);
-
 	return (
-		<div id={tabSetId} className={styles.tabSet}>
-			<ul role="tablist" aria-label={uniqueName} className={styles.tabs}>
+		<div id={tabSetId} ref={tabSetDiv} className={styles.tabset}>
+			<ul role="tablist" aria-label={`Tabs: ${uniqueName}`} className={styles.tabs}>
 				{tabs.map((tab, i) => (
-					<li key={i}>
+					<li className={i === activeIdx ? styles.itemActive : null} key={i}>
 						<button
-							className={styles.tab}
 							role="tab"
-							aria-selected={tab.slug === activeSlug}
+							tabIndex={i === activeIdx ? 0 : -1}
+							className={styles.tab}
+							aria-selected={i === activeIdx}
 							aria-controls={tab.panelId}
 							id={tab.tabId}
-							tabIndex={tab.slug === activeSlug ? -1 : 0}
-							onClick={() => {
-								saveScroll();
-								selectTab(router, tabSetSlug, tab.slug);
-								panelRefs[i]?.current?.focus();
-							}}>
-							{tab.uniqueName}
+							onKeyDown={(event) => {
+								if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+
+								const newIdx =
+									event.key === "ArrowLeft"
+										? i === 0
+											? tabs.length - 1
+											: i - 1
+										: i === tabs.length - 1
+										? 0
+										: i + 1;
+
+								selectTab(newIdx, true);
+							}}
+							onClick={() => selectTab(i)}>
+							{tab.initData.uniqueName}
 						</button>
 					</li>
 				))}
 			</ul>
+
 			{tabs.map((tab, i) => (
 				<div
-					className={styles.panel}
-					key={i}
-					id={tab.panelId}
 					role="tabpanel"
 					tabIndex={0}
+					className={styles.panel}
+					id={tab.panelId}
 					aria-labelledby={tab.tabId}
-					hidden={tab.slug !== activeSlug}>
-					{tab.content}
+					hidden={i !== activeIdx}
+					aria-hidden={i !== activeIdx}
+					key={i}>
+					{tab.initData.content}
 				</div>
 			))}
 		</div>
 	);
-}
+};
+
+export default TabSet;
