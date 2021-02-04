@@ -31,8 +31,6 @@ export default function Page({ tabsets }: InferGetStaticPropsType<typeof getStat
 							content: tab.content.map((para, pi) => <p key={pi}>{para}</p>),
 						}))}
 						options={{
-							useHash: false,
-							useQuery: false,
 							hardErrors: false,
 						}}
 					/>

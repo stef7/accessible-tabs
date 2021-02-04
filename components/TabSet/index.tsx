@@ -66,15 +66,35 @@ let scrollPosition: { top: number; left: number };
 const saveScroll = () => {
 	if (typeof window !== "object") return;
 	scrollPosition = { top: window.scrollY, left: window.scrollX };
+	console.log("saveScroll", scrollPosition);
 };
 const restoreScroll = () => {
 	if (typeof window !== "object") return;
-	window.scrollTo(scrollPosition);
+	const scroll = () => {
+		console.log("restoreScroll", scrollPosition);
+		window.scrollTo(scrollPosition);
+	};
+	setTimeout(scroll, 0);
+	setTimeout(scroll, 5);
+	setTimeout(scroll, 10);
 };
 
 const windowState: Record<string, unknown> =
 	typeof window === "object" && window.history?.state === "object" ? window.history.state : {};
-const keepState = () => merge(windowState, window.history.state);
+const keepWindowState = () => merge(windowState, window.history.state);
+const setWindowState = (
+	historyMethod: "replaceState" | "pushState",
+	tabSetSlug: string,
+	activeSlug: string,
+) => {
+	const newState = {
+		...window.history.state,
+		tabsets: merge(window.history.state.tabsets || {}, {
+			[tabSetSlug]: activeSlug,
+		}),
+	};
+	window.history[historyMethod](newState, document.title, window.location.href);
+};
 
 /**
  * TabSet: accessible tabs component. Spits out a set of
@@ -104,10 +124,10 @@ const keepState = () => merge(windowState, window.history.state);
  * 	]}
  * />
  */
-const TabSet: React.FC<TabSetProps> = function ({ uniqueName, tabs: tabsInit, options }) {
+const TabSet: React.FC<TabSetProps> = function ({ uniqueName, tabs: tabsInit, options = {} }) {
 	defaults(options, {
 		useQuery: true,
-		useHash: false,
+		useHash: true,
 		hardErrors: !/prod/.test(process.env.NODE_ENV),
 	});
 
@@ -155,12 +175,13 @@ const TabSet: React.FC<TabSetProps> = function ({ uniqueName, tabs: tabsInit, op
 				focused.tabIndex
 			] as HTMLButtonElement;
 		}
+
 		element?.focus();
+		// restoreScroll();
 	}, [focused]);
 
 	const selectTab = async (newIdx: number, focusTab?: boolean) => {
-		console.log("selectTab", newIdx);
-		saveScroll();
+		// saveScroll();
 
 		const activeSlug = tabs[newIdx].slug;
 
@@ -176,18 +197,14 @@ const TabSet: React.FC<TabSetProps> = function ({ uniqueName, tabs: tabsInit, op
 			setActiveIdx(newIdx);
 		}
 		if (options.useHash) {
-			setActiveIdx(newIdx); // why is this needed even with router.push?
-			restoreScroll(); // doesn't work?
+			setActiveIdx(newIdx);
 		}
 
-		const historyMethod = options.useHash || options.useQuery ? "replaceState" : "pushState";
-		const newState = {
-			...window.history.state,
-			tabsets: merge(window.history.state.tabsets || {}, {
-				[tabSetSlug]: activeSlug,
-			}),
-		};
-		window.history[historyMethod](newState, document.title, window.location.href);
+		setWindowState(
+			options.useHash || options.useQuery ? "replaceState" : "pushState",
+			tabSetSlug,
+			activeSlug,
+		);
 
 		if (focusTab) setFocused({ panelIndex: undefined, tabIndex: newIdx });
 		else setFocused({ panelIndex: newIdx, tabIndex: undefined });
@@ -197,32 +214,58 @@ const TabSet: React.FC<TabSetProps> = function ({ uniqueName, tabs: tabsInit, op
 		if (options.useQuery) {
 			const querySlug = querySlugString(router.query[tabSetSlug]);
 			if (!querySlug) return;
-			const index = tabs.findIndex((tab) => tab.slug === querySlug);
-			if (index !== undefined) setActiveIdx(index);
+			const tab = tabs.find((tab) => tab.slug === querySlug);
+			if (tab !== undefined) setActiveIdx(tabs.indexOf(tab));
 		}
 	};
 	useEffect(setActiveSlugFromQuery, [router.query[tabSetSlug]]);
 
+	const setActiveSlugFromHash = () => {
+		const hashSlug = window.location.hash;
+		console.log({ hashSlug });
+		if (!hashSlug) return;
+		const tab = tabs.find((tab) => `#${tabSetSlug}--${tab.slug}` === hashSlug);
+		if (tab !== undefined) setActiveIdx(tabs.indexOf(tab));
+
+		setFocused({ panelIndex: tabs.indexOf(tab), tabIndex: undefined });
+
+		return tab;
+	};
 	const setActiveSlugFromState = () => {
 		const stateSlug = windowState.tabsets?.[tabSetSlug];
 		if (!stateSlug) return;
-		const index = tabs.findIndex((tab) => tab.slug === stateSlug);
-		if (index !== undefined) setActiveIdx(index);
+		const tab = tabs.find((tab) => tab.slug === stateSlug);
+		if (tab !== undefined) setActiveIdx(tabs.indexOf(tab));
+		return tab;
 	};
 	const onPopState = (event: PopStateEvent) => {
-		keepState();
+		keepWindowState();
 		setActiveSlugFromState();
-		restoreScroll();
+		// restoreScroll();
+	};
+	const onHashChange = (event: HashChangeEvent) => {
+		// restoreScroll();
 	};
 	const onPopStateInspect = (event: PopStateEvent) => {
 		console.warn(cloneDeep(window.history.state), event);
 	};
-	if (typeof window !== "undefined") keepState();
+	if (typeof window !== "undefined") keepWindowState();
 	useEffect(() => {
-		if (!options.useQuery && !options.useHash) {
-			keepState();
+		if (options.useHash) {
+			setActiveSlugFromHash();
+
+			window.addEventListener("hashchange", onHashChange);
+
+			return () => {
+				window.removeEventListener("hashchange", onHashChange);
+			};
+		} else if (!options.useQuery && !options.useHash) {
+			keepWindowState();
+			setWindowState("replaceState", tabSetSlug, tabs[activeIdx].slug);
+
 			window.addEventListener("popstate", onPopState);
 			window.addEventListener("popstate", onPopStateInspect);
+
 			return () => {
 				window.removeEventListener("popstate", onPopState);
 				window.removeEventListener("popstate", onPopStateInspect);
