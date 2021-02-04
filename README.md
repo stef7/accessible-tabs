@@ -1,8 +1,12 @@
 # Accessible Tabs
 
-This application uses Next.js/React to run my accessible tabs component.
+This accessible tabs component runs within a Next.js/React application.
 
 To begin, run either `npm install` or `yarn` to install all the package dependencies.
+
+## Running component tests
+
+TBC
 
 ## Using the TabSet component
 
@@ -10,18 +14,12 @@ The `TabSet` component was built with full Typescript support. It accepts the fo
 
 |Prop|Purpose|
 |-|-|
-|uniqueName|A name for this particular instance of the tab set. This should be unique, as it is turned into a "slug" which will become the unique identifier used in URLs.
-|tabs|An array of tab objects with the following properties:
-* uniqueName: A name for this particular tab. Must also be unique -- similar rules and usage as tab sets.
-* content: A React.ReactNode or JSX.Element object.
-
-|options|A configuration object determining the behaviour of the component:
-
-* uniqueName: A name for this particular tab. Must also be unique -- similar rules and usage as tab sets.
-* content: A React.ReactNode or JSX.Element object.|
+|`uniqueName`|(Required) A name for this particular instance of the tab set. This should be unique, as it is turned into a "slug" which will become the unique identifier used in URLs.
+|`tabs`|(Required) An array of tab objects, each with the following properties:<ul><li>`uniqueName`: (Required) A name for this particular tab. Must also be unique - similar rules and usage as tab sets.<li>`content`: (Required) A React.ReactNode or JSX.Element object.</ul>
+|`options`|A configuration object determining the behaviour of the component: <ul><li>`useHash`: sets the location hash to the tab most recently selected (across all tab sets). Defaults to `false`<li>`useQuery`: sets a location search query param (for this tab set specifically) when a tab is selected. Defaults to `false`<li>`hardErrors`: throws a show-stopping error when a duplicate slug is used. Defaults to `true`</ul>
 
 
-Example:
+## React component example
 ```tsx
 <TabSet
 	uniqueName="My tabs"
@@ -39,10 +37,6 @@ Example:
 	]}
 />
 ```
-
-## Running component tests
-
-TBC
 
 ## Notes on real-world accessibility
 

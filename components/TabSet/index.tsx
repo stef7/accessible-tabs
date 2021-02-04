@@ -76,6 +76,34 @@ const windowState: Record<string, unknown> =
 	typeof window === "object" && window.history?.state === "object" ? window.history.state : {};
 const keepState = () => merge(windowState, window.history.state);
 
+/**
+ * TabSet: accessible tabs component. Spits out a set of
+ * @param props.uniqueName A name for this particular instance of the tab set. This should be unique, as it is turned into a "slug" which will become the unique identifier used in URLs.
+ * @param props.tabs[] An array of tab objects, each with the following properties:
+ * @param props.tabs[].uniqueName: A name for this particular tab. Must also be unique - similar rules and usage as tab sets.
+ * @param props.tabs[].content: A React.ReactNode or JSX.Element object.
+ * @param props.options A configuration object determining the behaviour of the component:
+ * @param props.options.useHash sets the location hash to the tab most recently selected (across all tab sets). Defaults to `false`
+ * @param props.options.useQuery: sets a location search query param (for this tab set specifically) when a tab is selected. Defaults to `false`
+ * @param props.options.hardErrors: throws a show-stopping error when a duplicate slug is used. Defaults to `true`
+ *
+ * @example
+ * <TabSet
+ * 	uniqueName="My tabs"
+ * 	tabs={[
+ * 		{
+ * 			uniqueName: "One",
+ * 			content: <p>Goodbye</p>,
+ * 			isActive: false,
+ * 		},
+ * 		{
+ * 			uniqueName: "Two",
+ * 			content: <p>Hello</p>,
+ * 			isActive: true,
+ * 		}
+ * 	]}
+ * />
+ */
 const TabSet: React.FC<TabSetProps> = function ({ uniqueName, tabs: tabsInit, options }) {
 	defaults(options, {
 		useQuery: true,
