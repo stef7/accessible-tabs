@@ -79,7 +79,7 @@ export const getStaticProps: GetStaticProps<{ tabsets: PageTabSetProps[] }> = as
 				...Array(1)
 					.fill(0)
 					.map(() => ({
-						uniqueName: "duplicate tabset name",
+						uniqueName: "other tabset name",
 						tabs: Array(2)
 							.fill(0)
 							.map((_, i) => ({

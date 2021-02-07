@@ -2,11 +2,9 @@
 
 This accessible tabs component runs within a Next.js/React application.
 
-To begin, run either `npm install` or `yarn` to install all the package dependencies. Then run `npm run dev` or `yarn dev` to start the local development environment at http://localhost:3000/.
+To begin, run either `npm install` or `yarn` to install all the package dependencies. 
 
-## Running component tests
-
-TBC
+Then run `npm run dev` or `yarn dev` to start the local development environment at http://localhost:3000/.
 
 ## Using the TabSet component
 
@@ -37,6 +35,10 @@ The `TabSet` component was built with full Typescript support. It accepts the fo
 	]}
 />
 ```
+
+## Running component tests
+
+Run `npm run test` or `yarn test` to run the full suite of tests for the component.
 
 ## Notes on real-world accessibility
 

@@ -3,11 +3,15 @@ $border: 0.1rem;
 
 .tabset {
 	margin: 2rem 0;
-	&[aria-label]:before {
+	position: relative;
+	[aria-label]:before {
 		content: attr(aria-label);
 		bottom: 100%;
-		font-size: 0.5em;
+		font-size: 0.8em;
 		color: red;
+		position: absolute;
+		top: -1rem;
+		opacity: 0.5;
 	}
 }
 .tabs {

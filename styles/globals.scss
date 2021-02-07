@@ -12,3 +12,16 @@ button {
 body {
 	margin: 0;
 }
+
+:focus,
+:target {
+	outline: 0.1rem solid mediumpurple;
+	outline-offset: 0.1rem;
+	outline-radius: 0.5rem;
+	-moz-outline-radius: 0.5rem;
+	-webkit-outline-radius: 0.5rem;
+}
+
+:target {
+	outline: 0.1rem solid mediumturquoise !important;
+}

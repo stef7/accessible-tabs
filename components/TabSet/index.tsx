@@ -2,11 +2,11 @@ import cloneDeep from "lodash/cloneDeep";
 import defaults from "lodash/defaults";
 import merge from "lodash/merge";
 import { useRouter } from "next/router";
-import React, { Dispatch, MutableRefObject, useEffect, useReducer, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import styles from "./index.module.scss";
 
-type TabSetProps = {
+export type TabSetProps = {
 	uniqueName: string;
 	tabs: {
 		uniqueName: string;
@@ -63,20 +63,20 @@ const querySlugString = (querySlug: string | string[]) => {
 };
 
 let scrollPosition: { top: number; left: number };
+const restoreScroll = () => {
+	if (typeof window !== "object") return;
+	window.scrollTo(scrollPosition);
+};
+const restoreScrollAndUnlisten = () => {
+	if (typeof window !== "object") return;
+	restoreScroll();
+	window.removeEventListener("scroll", restoreScrollAndUnlisten);
+};
 const saveScroll = () => {
 	if (typeof window !== "object") return;
 	scrollPosition = { top: window.scrollY, left: window.scrollX };
-	console.log("saveScroll", scrollPosition);
-};
-const restoreScroll = () => {
-	if (typeof window !== "object") return;
-	const scroll = () => {
-		console.log("restoreScroll", scrollPosition);
-		window.scrollTo(scrollPosition);
-	};
-	setTimeout(scroll, 0);
-	setTimeout(scroll, 5);
-	setTimeout(scroll, 10);
+	window.addEventListener("scroll", restoreScrollAndUnlisten);
+	setTimeout(() => window.removeEventListener("scroll", restoreScrollAndUnlisten), 500);
 };
 
 const windowState: Record<string, unknown> =
@@ -97,14 +97,14 @@ const setWindowState = (
 };
 
 /**
- * TabSet: accessible tabs component. Spits out a set of
+ * TabSet renders an accessible tabs component.
  * @param props.uniqueName A name for this particular instance of the tab set. This should be unique, as it is turned into a "slug" which will become the unique identifier used in URLs.
  * @param props.tabs[] An array of tab objects, each with the following properties:
  * @param props.tabs[].uniqueName: A name for this particular tab. Must also be unique - similar rules and usage as tab sets.
  * @param props.tabs[].content: A React.ReactNode or JSX.Element object.
  * @param props.options A configuration object determining the behaviour of the component:
- * @param props.options.useHash sets the location hash to the tab most recently selected (across all tab sets). Defaults to `false`
- * @param props.options.useQuery: sets a location search query param (for this tab set specifically) when a tab is selected. Defaults to `false`
+ * @param props.options.useHash sets the location hash to the tab most recently selected (across all tab sets). Defaults to `true`
+ * @param props.options.useQuery: sets a location search query param (for this tab set specifically) when a tab is selected. Defaults to `true`
  * @param props.options.hardErrors: throws a show-stopping error when a duplicate slug is used. Defaults to `true`
  *
  * @example
@@ -135,8 +135,6 @@ const TabSet: React.FC<TabSetProps> = function ({ uniqueName, tabs: tabsInit, op
 	const tabSetId = `tabs--${tabSetSlug}`;
 	const tabSetDiv = useRef<HTMLDivElement>(null);
 
-	const router = useRouter();
-
 	const tabSlugs = {};
 	const tabs = tabsInit.map((tab) => {
 		const tabSlug = getUniqueSlug(
@@ -153,8 +151,10 @@ const TabSet: React.FC<TabSetProps> = function ({ uniqueName, tabs: tabsInit, op
 		};
 	});
 
+	const router = useRouter();
+
 	const [activeIdx, setActiveIdx] = useState(() => {
-		const querySlug = querySlugString(router.query[tabSetSlug]);
+		const querySlug = router && querySlugString(router.query[tabSetSlug]);
 		if (querySlug) return tabs.findIndex((tab) => tab.slug === querySlug);
 
 		const firstActive = tabs.find((tab) => tab.initData.isActive);
@@ -177,11 +177,11 @@ const TabSet: React.FC<TabSetProps> = function ({ uniqueName, tabs: tabsInit, op
 		}
 
 		element?.focus();
-		// restoreScroll();
+		restoreScroll();
 	}, [focused]);
 
 	const selectTab = async (newIdx: number, focusTab?: boolean) => {
-		// saveScroll();
+		saveScroll();
 
 		const activeSlug = tabs[newIdx].slug;
 
@@ -212,17 +212,16 @@ const TabSet: React.FC<TabSetProps> = function ({ uniqueName, tabs: tabsInit, op
 
 	const setActiveSlugFromQuery = () => {
 		if (options.useQuery) {
-			const querySlug = querySlugString(router.query[tabSetSlug]);
+			const querySlug = querySlugString(router?.query[tabSetSlug]);
 			if (!querySlug) return;
 			const tab = tabs.find((tab) => tab.slug === querySlug);
 			if (tab !== undefined) setActiveIdx(tabs.indexOf(tab));
 		}
 	};
-	useEffect(setActiveSlugFromQuery, [router.query[tabSetSlug]]);
+	useEffect(setActiveSlugFromQuery, [router?.query[tabSetSlug]]);
 
 	const setActiveSlugFromHash = () => {
 		const hashSlug = window.location.hash;
-		console.log({ hashSlug });
 		if (!hashSlug) return;
 		const tab = tabs.find((tab) => `#${tabSetSlug}--${tab.slug}` === hashSlug);
 		if (tab !== undefined) setActiveIdx(tabs.indexOf(tab));
@@ -241,13 +240,10 @@ const TabSet: React.FC<TabSetProps> = function ({ uniqueName, tabs: tabsInit, op
 	const onPopState = (event: PopStateEvent) => {
 		keepWindowState();
 		setActiveSlugFromState();
-		// restoreScroll();
+		restoreScroll();
 	};
 	const onHashChange = (event: HashChangeEvent) => {
-		// restoreScroll();
-	};
-	const onPopStateInspect = (event: PopStateEvent) => {
-		console.warn(cloneDeep(window.history.state), event);
+		restoreScroll();
 	};
 	if (typeof window !== "undefined") keepWindowState();
 	useEffect(() => {
@@ -264,11 +260,9 @@ const TabSet: React.FC<TabSetProps> = function ({ uniqueName, tabs: tabsInit, op
 			setWindowState("replaceState", tabSetSlug, tabs[activeIdx].slug);
 
 			window.addEventListener("popstate", onPopState);
-			window.addEventListener("popstate", onPopStateInspect);
 
 			return () => {
 				window.removeEventListener("popstate", onPopState);
-				window.removeEventListener("popstate", onPopStateInspect);
 			};
 		}
 	}, []);
