@@ -193,10 +193,8 @@ const TabSet: React.FC<TabSetProps> = function ({ uniqueName, tabs: tabsInit, op
 			if (options.useHash) url.hash = `${tabSetSlug}--${activeSlug}`;
 
 			await router.push(url, undefined, { shallow: true, scroll: false });
-		} else {
-			setActiveIdx(newIdx);
 		}
-		if (options.useHash) {
+		if (!options.useQuery) {
 			setActiveIdx(newIdx);
 		}
 

@@ -1,4 +1,4 @@
-import Enzyme, { shallow } from "enzyme";
+import Enzyme, { render, shallow } from "enzyme";
 import Adapter from "enzyme-adapter-react-16";
 import React from "react";
 
@@ -73,35 +73,9 @@ describe("<TabSet />", () => {
 	});
 
 	it("generates slugs and sets IDs and accessibility attributes correctly", () => {
-		const wrapper = shallow(<TabSet {...mockProps1} />);
+		const wrapper = shallow(<TabSetWrapper {...mockProps1} />);
 
-		expect(wrapper.render()).toHaveAttribute("id", "lorem-ipsum");
-
-		const tabs = wrapper.find(`ul[role="tablist"] > li > [role="tab"]`);
-		const panels = wrapper.find(`div[role="tabpanel"]`);
-
-		const tabCtrls = tabs.map((tab) => tab.prop("aria-controls"));
-		const panelCtrlBys = panels.map((panel) => panel.prop("aria-controlled-by"));
-
-		const expectedPanelIds = ["lorem-ipsum--one", "lorem-ipsum--two", "lorem-ipsum--three"];
-		const panelIds = panels.map((panel) => panel.prop("id"));
-		expect(panelIds).toEqual(expectedPanelIds);
-		expect(tabCtrls).toEqual(expectedPanelIds);
-
-		const expectedTabIds = [
-			"tab--lorem-ipsum--one",
-			"tab--lorem-ipsum--two",
-			"tab--lorem-ipsum--three",
-		];
-		const tabIds = tabs.map((tab) => tab.prop("id"));
-		expect(tabIds).toEqual(expectedTabIds);
-		expect(panelCtrlBys).toEqual(expectedTabIds);
-	});
-
-	it("loads the correct tab on load", () => {
-		const wrapper = shallow(<TabSet {...mockProps1} />);
-
-		expect(wrapper.render()).toHaveAttribute("id", "lorem-ipsum");
+		expect(wrapper.find(TabSet)).toHaveAttribute("id", "lorem-ipsum");
 
 		const tabs = wrapper.find(`ul[role="tablist"] > li > [role="tab"]`);
 		const panels = wrapper.find(`div[role="tabpanel"]`);
@@ -123,29 +97,36 @@ describe("<TabSet />", () => {
 		expect(tabIds).toEqual(expectedTabIds);
 		expect(panelCtrlBys).toEqual(expectedTabIds);
 	});
-	it("loads the correct tab from tab isActive=true on load", () => {
-		const wrapper = shallow(<TabSet {...mockProps1} />);
 
-		expect(wrapper.render()).toHaveAttribute("id", "lorem-ipsum");
+	it("loads the first tab by default correctly on load", () => {
+		// placeholder for test case code using testing library
+	});
 
-		const tabs = wrapper.find(`ul[role="tablist"] > li > [role="tab"]`);
-		const panels = wrapper.find(`div[role="tabpanel"]`);
+	it("loads the correct tab from first tab with isActive=true on load", () => {
+		// placeholder for test case code using testing library
+	});
 
-		const tabCtrls = tabs.map((tab) => tab.prop("aria-controls"));
-		const panelCtrlBys = panels.map((panel) => panel.prop("aria-controlled-by"));
+	it("loads the correct tab from tab from history state on load", () => {
+		// placeholder for test case code using testing library
+	});
 
-		const expectedPanelIds = ["lorem-ipsum--one", "lorem-ipsum--two", "lorem-ipsum--three"];
-		const panelIds = panels.map((panel) => panel.prop("id"));
-		expect(panelIds).toEqual(expectedPanelIds);
-		expect(tabCtrls).toEqual(expectedPanelIds);
+	it("loads the correct tab from tab from location query on load", () => {
+		// placeholder for test case code using testing library
+	});
 
-		const expectedTabIds = [
-			"tab--lorem-ipsum--one",
-			"tab--lorem-ipsum--two",
-			"tab--lorem-ipsum--three",
-		];
-		const tabIds = tabs.map((tab) => tab.prop("id"));
-		expect(tabIds).toEqual(expectedTabIds);
-		expect(panelCtrlBys).toEqual(expectedTabIds);
+	it("loads and focuses the correct tab from tab from location hash on load", () => {
+		// placeholder for test case code using testing library
+	});
+
+	it("opens the correct panel and sets history state on tab select", () => {
+		// placeholder for test case code using testing library
+	});
+
+	it("opens the correct panel and sets location query on tab select", () => {
+		// placeholder for test case code using testing library
+	});
+
+	it("opens the correct panel and sets location hash on tab select", () => {
+		// placeholder for test case code using testing library
 	});
 });
